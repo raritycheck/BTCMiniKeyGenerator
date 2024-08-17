@@ -6,8 +6,8 @@ import os
 
 DEBUG = False
 
-def generate_random_key_from_audio(duration=3, sample_rate=44100, min_frames=10):
-    if DEBUG: 
+def generate_random_key_from_audio(duration=3, sample_rate=44100, min_frames=10, silence_threshold=0.01):
+    if DEBUG:
         print(f"Capturing audio data for {duration} seconds...")
     
     p = pyaudio.PyAudio()
@@ -24,7 +24,7 @@ def generate_random_key_from_audio(duration=3, sample_rate=44100, min_frames=10)
             frames.append(data)
             frame_count += 1
         except IOError as e:
-            if DEBUG: 
+            if DEBUG:
                 print(f"Error reading audio stream: {e}")
             continue
     
@@ -34,12 +34,16 @@ def generate_random_key_from_audio(duration=3, sample_rate=44100, min_frames=10)
 
     if frame_count < min_frames:
         raise ValueError("Insufficient audio data captured. Try increasing the duration or ensuring the microphone is working properly.")
-    
+
     audio_data = b''.join(frames)
+
+    # Check if audio data is silent
+    audio_array = np.frombuffer(audio_data, dtype=np.int16)
+    if np.max(np.abs(audio_array)) < silence_threshold:
+        raise ValueError("Captured audio appears to be silent. Please check the microphone volume and try again.")
 
     # Combine audio data with system randomness for additional entropy
     system_entropy = os.urandom(32)
     combined_data = audio_data + system_entropy
     
     return hashlib.sha256(combined_data).digest()
-
