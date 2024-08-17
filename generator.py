@@ -5,10 +5,14 @@ import ecdsa
 import base58
 import audio_randomness
 import secrets
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 DEBUG = False
 
-# Function to generate additional randomness from system timings
 def generate_random_key_from_timing(events=10):
     try:
         return b''.join(
@@ -16,10 +20,9 @@ def generate_random_key_from_timing(events=10):
             for _ in range(events)
         )
     except Exception as e:
-        print(f"Error generating timing-based randomness: {e}")
+        logger.error(f"Error generating timing-based randomness: {e}")
         raise
 
-# Combined function to generate a random private key
 def generate_combined_random_key(audio_entropy):
     try:
         combined_entropy = audio_entropy
@@ -33,18 +36,16 @@ def generate_combined_random_key(audio_entropy):
         final_private_key = hashlib.sha256(combined_entropy).digest()
         return final_private_key
     except Exception as e:
-        print(f"Error generating combined random key: {e}")
+        logger.error(f"Error generating combined random key: {e}")
         raise
 
-# Function to test if a candidate mini key meets the criteria
 def test_candidate(candidate):
     try:
         return hashlib.sha256((candidate + "?").encode()).digest()[0] == 0
     except Exception as e:
-        print(f"Error testing candidate: {e}")
+        logger.error(f"Error testing candidate: {e}")
         raise
 
-# Function to generate a mini key based on the combined random key
 def generate_mini_key():
     try:
         audio_entropy = audio_randomness.generate_random_key_from_audio()
@@ -56,12 +57,13 @@ def generate_mini_key():
                 mini_key = 'S' + base58_encoded[1:29]
 
                 if test_candidate(mini_key):
-                    if DEBUG: print(f"Mini key generated: {mini_key}")
+                    if DEBUG:
+                        logger.info(f"Mini key generated: {mini_key}")
                     return mini_key, private_key_bytes
                 elif DEBUG:
-                    print(f"Invalid mini key: {mini_key}")
+                    logger.info(f"Invalid mini key: {mini_key}")
     except Exception as e:
-        print(f"Error generating mini key: {e}")
+        logger.error(f"Error generating mini key: {e}")
         raise
 
 def mini_key_to_private_key(mini_key):
@@ -69,10 +71,9 @@ def mini_key_to_private_key(mini_key):
     try:
         return hashlib.sha256(mini_key.encode('utf-8')).digest()
     except Exception as e:
-        print(f"Error deriving private key from mini key: {e}")
+        logger.error(f"Error deriving private key from mini key: {e}")
         raise
 
-# Convert the private key to a public key
 def private_key_to_public_key(private_key_bytes):
     try:
         signing_key = ecdsa.SigningKey.from_string(private_key_bytes, curve=ecdsa.SECP256k1)
@@ -80,10 +81,9 @@ def private_key_to_public_key(private_key_bytes):
         public_key = b'\x04' + verifying_key.to_string()  # Uncompressed public key
         return public_key
     except Exception as e:
-        print(f"Error converting private key to public key: {e}")
+        logger.error(f"Error converting private key to public key: {e}")
         raise
 
-# Convert the public key to a Bitcoin address
 def public_key_to_address(public_key_bytes):
     try:
         sha256_bpk = hashlib.sha256(public_key_bytes).digest()
@@ -97,10 +97,9 @@ def public_key_to_address(public_key_bytes):
         address = base58.b58encode(binary_address).decode()
         return address
     except Exception as e:
-        print(f"Error converting public key to address: {e}")
+        logger.error(f"Error converting public key to address: {e}")
         raise
 
-# Encode the private key in WIF format
 def encode_private_key_wif(private_key_bytes):
     try:
         extended_key = b'\x80' + private_key_bytes  # Add 0x80 prefix for mainnet
@@ -110,5 +109,5 @@ def encode_private_key_wif(private_key_bytes):
         wif = base58.b58encode(extended_key + checksum).decode()
         return wif
     except Exception as e:
-        print(f"Error encoding private key to WIF: {e}")
+        logger.error(f"Error encoding private key to WIF: {e}")
         raise
