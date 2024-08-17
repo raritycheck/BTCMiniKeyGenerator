@@ -1,55 +1,57 @@
 import os
 import hashlib
 import time
-from pynput import mouse
 import ecdsa
 import base58
+import audio_randomness
 
-# Global variable to store collected entropy from mouse movements
-entropy = b''
-
-# Mouse movement event handlers
-def on_move(x, y):
-    global entropy
-    entropy += hashlib.sha256(f'{x},{y},{time.time()}'.encode()).digest()
-
-def on_click(x, y, button, pressed):
-    global entropy
-    entropy += hashlib.sha256(f'{x},{y},{button},{pressed},{time.time()}'.encode()).digest()
-
-def on_scroll(x, y, dx, dy):
-    global entropy
-    entropy += hashlib.sha256(f'{x},{y},{dx},{dy},{time.time()}'.encode()).digest()
+DEBUG = False
+# Global variable to store collected entropy from audio
+audio_entropy = b''
 
 # Function to generate additional randomness from system timings
-def generate_random_key_from_timing(events=100):
-    extra_entropy = b''
-    for _ in range(events):
-        time_entropy = hashlib.sha256(f'{time.time_ns()}'.encode() + os.urandom(8)).digest()
-        extra_entropy += time_entropy
-        time.sleep(0.01)
-    return extra_entropy
+def generate_random_key_from_timing(events=10):
+    return b''.join(
+        hashlib.sha256(f'{time.time_ns()}'.encode() + os.urandom(8)).digest()
+        for _ in range(events)
+    )
 
 # Combined function to generate a random private key
-def generate_combined_random_key():
+def generate_combined_random_key(audio_entropy):
+    combined_entropy = audio_entropy
     # Step 1: Initial randomness from os.urandom()
-    initial_entropy = os.urandom(32)
+    combined_entropy += os.urandom(32)
 
-    # Step 2: Collect mouse movement entropy
-    listener = mouse.Listener(on_move=on_move, on_click=on_click, on_scroll=on_scroll)
-    listener.start()
-    print("Move your mouse randomly for a few seconds to generate entropy...")
-    time.sleep(5)
-    listener.stop()
+    # Step 2: Add system timing entropy
+    combined_entropy += generate_random_key_from_timing()
 
-    # Step 3: Add system timing entropy
-    timing_entropy = generate_random_key_from_timing()
-
-    # Combine all sources of entropy
-    combined_entropy = initial_entropy + entropy + timing_entropy
     final_private_key = hashlib.sha256(combined_entropy).digest()
 
     return final_private_key
+
+# Function to test if a candidate mini key meets the criteria
+def test_candidate(candidate):
+    return hashlib.sha256((candidate + "?").encode()).digest()[0] == 0
+
+# Function to generate a mini key based on the combined random key
+def generate_mini_key():
+    audio_entropy = audio_randomness.generate_random_key_from_audio()
+    while True:
+        private_key_bytes = generate_combined_random_key(audio_entropy)
+        base58_encoded = base58.b58encode(private_key_bytes).decode()
+
+        if len(base58_encoded) >= 29:
+            mini_key = 'S' + base58_encoded[1:29]
+
+            if test_candidate(mini_key):
+                if DEBUG: print(f"Mini key generated: {mini_key}")
+                return mini_key, private_key_bytes
+            elif DEBUG:
+                print(f"Invalid mini key: {mini_key}")
+
+def mini_key_to_private_key(mini_key):
+    """ Derive a private key from a mini key using SHA-256 """
+    return hashlib.sha256(mini_key.encode('utf-8')).digest()
 
 # Convert the private key to a public key
 def private_key_to_public_key(private_key_bytes):
