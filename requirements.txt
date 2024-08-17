@@ -1,3 +1,5 @@
 ecdsa
 base58
 pynput
+pyaudio
+numpy
