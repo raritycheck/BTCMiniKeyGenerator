@@ -43,9 +43,3 @@ def generate_random_key_from_audio(duration=3, sample_rate=44100, min_frames=10)
     
     return hashlib.sha256(combined_data).digest()
 
-# Example usage:
-try:
-    entropy = generate_random_key_from_audio(duration=3)
-    print(f"Generated entropy: {entropy.hex()}")
-except ValueError as e:
-    print(f"Failed to generate entropy: {e}")
