@@ -52,11 +52,9 @@ The system is designed to generate cryptographic keys that can be used for Bitco
     -   Encodes the private key in Wallet Import Format (WIF), which is a common format for Bitcoin private keys.
 
 ### What It Produces
-
--   **Private Key**: A cryptographic key used to sign transactions and prove ownership of Bitcoin or similar assets. It is kept secret.
--   **Public Key**: Derived from the private key, it is used to receive and verify transactions.
+ 
+-   **Mini Key**: A shorter representation of the private mini key, useful for certain applications.
 -   **Bitcoin Address**: A human-readable string derived from the public key, used to send and receive Bitcoin.
--   **Mini Key**: A shorter representation of the private key, useful for certain applications.
 
 ### Security Considerations
 
