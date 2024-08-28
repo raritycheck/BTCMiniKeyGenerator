@@ -23,3 +23,6 @@ Execute the main Python script to generate BTC mini keys:
 ```
 python main.py
 ```
+
+Donation: 17AXCoY1PCaSU65D8HyeA7S3Pcz4wCPAgU
+
