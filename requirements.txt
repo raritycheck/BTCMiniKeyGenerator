@@ -1,4 +1,4 @@
-ecdsa
+cryptography
 base58
 pynput
 pyaudio
