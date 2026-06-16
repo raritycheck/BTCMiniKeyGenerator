@@ -1,7 +1,6 @@
-import os
 import hashlib
 import time
-import ecdsa
+from cryptography.hazmat.primitives.asymmetric.ec import derive_private_key, SECP256K1
 import base58
 import audio_randomness
 import secrets
@@ -76,9 +75,10 @@ def mini_key_to_private_key(mini_key):
 
 def private_key_to_public_key(private_key_bytes):
     try:
-        signing_key = ecdsa.SigningKey.from_string(private_key_bytes, curve=ecdsa.SECP256k1)
-        verifying_key = signing_key.verifying_key
-        public_key = b'\x04' + verifying_key.to_string()  # Uncompressed public key
+        private_int = int.from_bytes(private_key_bytes, 'big')
+        private_key = derive_private_key(private_int, SECP256K1())
+        pub_numbers = private_key.public_key().public_numbers()
+        public_key = b'\x04' + pub_numbers.x.to_bytes(32, 'big') + pub_numbers.y.to_bytes(32, 'big')  # Uncompressed public key
         return public_key
     except Exception as e:
         logger.error(f"Error converting private key to public key: {e}")

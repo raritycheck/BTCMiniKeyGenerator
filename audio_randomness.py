@@ -3,6 +3,7 @@ import time
 import pyaudio
 import numpy as np
 import os
+import secrets
 
 DEBUG = False
 
@@ -43,7 +44,7 @@ def generate_random_key_from_audio(duration=3, sample_rate=44100, min_frames=10,
         raise ValueError("Captured audio appears to be silent. Please check the microphone volume and try again.")
 
     # Combine audio data with system randomness for additional entropy
-    system_entropy = os.urandom(32)
+    system_entropy = secrets.token_bytes(32)
     combined_data = audio_data + system_entropy
     
     return hashlib.sha256(combined_data).digest()
